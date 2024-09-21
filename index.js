@@ -3,8 +3,8 @@ const ical = require('node-ical');
 const cheerio = require('cheerio');
 
 // Service time configuration
-const SERVICE_START = '13:00';
-const SERVICE_END = '14:00';
+const SERVICE_START = '06:00';
+const SERVICE_END = '07:15';
 
 // Vestaboard API configuration
 const VESTABOARD_API_KEY = process.env.VESTABOARD_API_KEY;
