@@ -28,7 +28,7 @@ const LATE_BUS_SHEET_URL = process.env.LATE_BUS_SHEET_URL;
 let initialBoardState;
 let activeSlideIndex = 0;
 
-const slides = ['weather', 'lunch', 'bus'];
+const slides = ['date', 'weather', 'lunch', 'bus'];
 
 async function getLunch() {
   try {
@@ -182,9 +182,19 @@ async function updateBoard(message) {
   }
 }
 
+async function getDateAndTime() {
+  const now = new Date();
+  const dateString = format(now, 'EEEE, MMMM d');
+  const timeString = format(now, 'HH:mm');
+  return `Good morning.\nToday is ${dateString}\nand the time is ${timeString}.`;
+}
+
 async function displaySlide() {
   let message;
   switch (slides[activeSlideIndex]) {
+    case 'date':
+      message = await getDateAndTime();
+      break;
     case 'lunch':
       message = await getLunch();
       break;
@@ -223,6 +233,5 @@ async function main() {
 }
 
 main().catch(error => {
-  // Error handling for unhandled errors in main loop
   console.log('error', error)
 });
