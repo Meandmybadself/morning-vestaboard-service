@@ -3,8 +3,8 @@ const ical = require('node-ical');
 const cheerio = require('cheerio');
 
 // Service time configuration
-const SERVICE_START = '06:00';
-const SERVICE_END = '07:15';
+const SERVICE_START = '14:00';
+const SERVICE_END = '15:15';
 
 // Vestaboard API configuration
 const VESTABOARD_API_KEY = process.env.VESTABOARD_API_KEY;
@@ -69,7 +69,7 @@ async function getWeather() {
     const current = data.current;
     const today = data.daily[0];
 
-    return `Today's Weather\n${current.temp.toFixed(0)}°F, ${current.weather[0].description}\nHigh: ${today.temp.max.toFixed(0)}°F, Low: ${today.temp.min.toFixed(0)}°F`;
+    return `Today's Weather\n${current.temp.toFixed(0)}°F, ${current.weather[0].description}\nHigh: ${today.temp.max.toFixed(0)}°F\nLow: ${today.temp.min.toFixed(0)}°F`;
   } catch (error) {
     return 'Error fetching weather data';
   }
@@ -121,7 +121,7 @@ async function getBusCountdown() {
   const diffInSeconds = differenceInSeconds(busTime, now);
 
   if (diffInSeconds <= 0) {
-    return 'Bus arrives in 1m 32s';
+    return 'No bus today.';
   }
 
   const minutes = Math.floor(diffInSeconds / 60);
@@ -212,7 +212,7 @@ async function displaySlide() {
 function isServiceTime() {
   const now = new Date();
   const currentTime = format(now, 'HH:mm');
-  const isWeekday = true // !isWeekend(now);
+  const isWeekday = !isWeekend(now);
   return isWeekday && currentTime >= SERVICE_START && currentTime <= SERVICE_END;
 }
 
@@ -228,7 +228,7 @@ async function main() {
       initialBoardState = null;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    await new Promise(resolve => setTimeout(resolve, 5000));
   }
 }
 
