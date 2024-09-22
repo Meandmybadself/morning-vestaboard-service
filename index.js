@@ -3,8 +3,8 @@ const ical = require('node-ical');
 const cheerio = require('cheerio');
 
 // Service time configuration
-const SERVICE_START = '14:00';
-const SERVICE_END = '15:15';
+const SERVICE_START = process.env.SERVICE_START
+const SERVICE_END = process.env.SERVICE_END;
 
 // Vestaboard API configuration
 const VESTABOARD_API_KEY = process.env.VESTABOARD_API_KEY;
@@ -88,11 +88,11 @@ async function getLateBus(busNumber) {
       const dateValue = parseISO(dateText);
       const busNumberText = $(element).find('td').eq(1).text();
 
-      if (differenceInSeconds(new Date(), dateValue) <= 3600 && busNumberText.includes(busNumber)) {
+      if (busNumberText.includes(busNumber)) {
         lateBusInfo = {
           lateMinutes: parseInt($(element).find('td').eq(4).text()),
-          reason: $(element).find('td').eq(5).text(),
-          details: $(element).find('td').eq(6).text()
+          reason: $(element).find('td').eq(5).text() || '',
+          details: $(element).find('td').eq(6).text() || ''
         };
         return false; // break the loop
       }
@@ -127,7 +127,15 @@ async function getBusCountdown() {
   const minutes = Math.floor(diffInSeconds / 60);
   const seconds = diffInSeconds % 60;
 
-  return `Bus arrives in ${minutes}m ${seconds}s`;
+  let message = `Bus arrives in\n${minutes}m ${seconds}s`;
+  if (lateBusInfo.lateMinutes) {
+    message += `\nLate: ${lateBusInfo.lateMinutes}min.`
+  }
+  if (lateBusInfo.reason) {
+    message += `\n${lateBusInfo.reason}`;
+  }
+
+  return message
 }
 
 async function getCurrentBoardState() {
@@ -210,6 +218,9 @@ async function displaySlide() {
 }
 
 function isServiceTime() {
+  if (process.env.IS_SERVICE_TIME === 'true') {
+    return true;
+  }
   const now = new Date();
   const currentTime = format(now, 'HH:mm');
   const isWeekday = !isWeekend(now);
@@ -228,7 +239,7 @@ async function main() {
       initialBoardState = null;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 30000));
   }
 }
 
