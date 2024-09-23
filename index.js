@@ -28,21 +28,20 @@ const LATE_BUS_SHEET_URL = process.env.LATE_BUS_SHEET_URL;
 let initialBoardState;
 let activeSlideIndex = 0;
 
-const slides = ['date', 'weather', 'lunch', 'bus'];
+const slides = ['date', 'lunch', 'bus', 'weather'];
 
 async function getLunch() {
   try {
     const response = await fetch(LUNCH_CALENDAR_URL);
     const icsData = await response.text();
     const events = await ical.async.parseICS(icsData);
-
+    
     const today = new Date();
     let todayLunch
     try {
-      todayLunch = Object.values(events).find(event =>
-        event.type === 'VEVENT' && isSameDay(parseISO(event.start), today)
-      );
+      todayLunch = Object.values(events).filter(event => !!event).find(event => event.type === 'VEVENT' && isSameDay(event.start, today));
     } catch (error) {
+      console.log(error)
       return 'No lunch data available for today';
     }
     
@@ -51,6 +50,7 @@ async function getLunch() {
     }
 
     const lunchItems = todayLunch.description
+      .replace(/<br\/>/g, '\n')
       .split('\n')
       .filter(item => item.trim() !== '')
       .slice(0, 3);
@@ -82,13 +82,16 @@ async function getLateBus(busNumber) {
     const $ = cheerio.load(html);
 
     let lateBusInfo = null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     $('tr').each((index, element) => {
-      const dateText = $(element).find('td').eq(0).text();
-      const dateValue = parseISO(dateText);
+      const dateText = $(element).find('td').eq(0).text().trim().split(' ')[0] 
+      const [month, day, year] = dateText.split('/').map(Number);
+      const dateValue = new Date(year, month - 1, day); 
       const busNumberText = $(element).find('td').eq(1).text();
 
-      if (busNumberText.includes(busNumber)) {
+      if (dateValue.getTime() === today.getTime() && busNumberText.includes(busNumber)) {
         lateBusInfo = {
           lateMinutes: parseInt($(element).find('td').eq(4).text()),
           reason: $(element).find('td').eq(5).text() || '',
@@ -100,6 +103,7 @@ async function getLateBus(busNumber) {
 
     return lateBusInfo;
   } catch (error) {
+    console.error('Error in getLateBus:', error);
     return null;
   }
 }
@@ -108,7 +112,7 @@ async function getBusCountdown() {
   const now = new Date();
   const [busHour, busMinute] = BUS_EXPECTED_TIME.split(':').map(Number);
   let busTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), busHour, busMinute);
-
+  
   // Subtract buffer time
   busTime.setMinutes(busTime.getMinutes() - BUS_BUFFER_TIME);
 
@@ -128,10 +132,10 @@ async function getBusCountdown() {
   const seconds = diffInSeconds % 60;
 
   let message = `Bus arrives in\n${minutes}m ${seconds}s`;
-  if (lateBusInfo.lateMinutes) {
+  if (lateBusInfo?.lateMinutes) {
     message += `\nLate: ${lateBusInfo.lateMinutes}min.`
   }
-  if (lateBusInfo.reason) {
+  if (lateBusInfo?.reason) {
     message += `\n${lateBusInfo.reason}`;
   }
 
@@ -239,7 +243,7 @@ async function main() {
       initialBoardState = null;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    await new Promise(resolve => setTimeout(resolve, 60000));
   }
 }
 
